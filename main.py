@@ -4,7 +4,8 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
-from mlp import Base_Linear, Base_Nonlinear, Base_NonlinearB, MiniMLP, LargeMLP, MiniMLP_nonlinear, LargeMLP_nonlinear, MiniMLP_nonlinearB, LargeMLP_nonlinearB
+from mlp import Base_Linear, Mini_MLP, Large_MLP
+from mnlp import Base_Nonlinear, Base_Nonlinear_Broad, Mini_MNLP, Large_MNLP, Mini_MNLP_Broad, Large_MNLP_Broad
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -62,8 +63,8 @@ if __name__ == "__main__":
     lr = 0.001
     batch_size = 64
 
-    model = MiniMLP(input_size, hidden_size, output_size)
-    model_non = MiniMLP_nonlinear(input_size, hidden_size, output_size)
+    model = Mini_MLP(input_size, hidden_size, output_size)
+    model_non = Mini_MNLP(input_size, hidden_size, output_size)
 
     train_data = datasets.MNIST(root='./data/', train=True, transform=transforms.ToTensor())
     test_data = datasets.MNIST(root='./data/', train=False, transform=transforms.ToTensor())

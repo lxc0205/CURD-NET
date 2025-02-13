@@ -2,7 +2,8 @@ import time
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from mlp import Base_Linear, Base_Nonlinear, Base_NonlinearB, MiniMLP, LargeMLP, MiniMLP_nonlinear, LargeMLP_nonlinear, MiniMLP_nonlinearB, LargeMLP_nonlinearB
+from mlp import Base_Linear, Mini_MLP, Large_MLP
+from mnlp import Base_Nonlinear, Base_Nonlinear_Broad, Mini_MNLP, Large_MNLP, Mini_MNLP_Broad, Large_MNLP_Broad
 
 # 合成数据集
 def generate_data(input_size, num_samples):
@@ -53,15 +54,15 @@ if __name__ == "__main__":
     if model_scale_type == 'base':
         model = Base_Linear(input_size, output_size)
         model_non = Base_Nonlinear(input_size, output_size)
-        model_nonB = Base_NonlinearB(input_size, output_size)
+        model_nonB = Base_Nonlinear_Broad(input_size, output_size)
     if model_scale_type == 'mini':
-        model = MiniMLP(input_size, hidden_size, output_size)
-        model_non = MiniMLP_nonlinear(input_size, hidden_size, output_size)
-        model_nonB = MiniMLP_nonlinearB(input_size, hidden_size, output_size)
+        model = Mini_MLP(input_size, hidden_size, output_size)
+        model_non = Mini_MNLP(input_size, hidden_size, output_size)
+        model_nonB = Mini_MNLP_Broad(input_size, hidden_size, output_size)
     if model_scale_type == 'large':
-        model = LargeMLP(input_size, hidden_size, output_size)
-        model_non = LargeMLP_nonlinear(input_size, hidden_size, output_size)
-        model_nonB = LargeMLP_nonlinearB(input_size, hidden_size, output_size)
+        model = Large_MLP(input_size, hidden_size, output_size)
+        model_non = Large_MNLP(input_size, hidden_size, output_size)
+        model_nonB = Large_MNLP_Broad(input_size, hidden_size, output_size)
 
     # 生成数据
     X, y = generate_data(input_size, num_samples)
