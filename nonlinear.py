@@ -88,8 +88,6 @@ class Nonlinear(torch.nn.Module):
     
     def forward(self, input: Tensor) -> Tensor: 
         # 64*8*784=6272
-        print(input.shape)
-        print(self.weight.shape)
         x = F.linear(self.nonlinear_layer(input), self.weight, self.bias)
         return x
     
