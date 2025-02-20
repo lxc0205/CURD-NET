@@ -7,12 +7,13 @@ def generate_data(input_size, num_samples):
     y = torch.rand(num_samples, 1)
     return X, y
 
-# mnist dataset classification dataloader
-def mnist_dataloader(batch_size):
-    train_dataset = datasets.MNIST(root='./data/', train=True, transform=transforms.ToTensor())
-    test_dataset = datasets.MNIST(root='./data/', train=False, transform=transforms.ToTensor())
-    # 获取数据
-    train_data = torch.utils.data.DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=True)
-    test_data = torch.utils.data.DataLoader(dataset=test_dataset, batch_size=batch_size, shuffle=False)
+def mnist_dataloader(train_batch_size, test_batch_size):
+    transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])
 
-    return train_data, test_data
+    train_dataset = datasets.MNIST(root='./data/', train=True, transform=transform)
+    train_loader = torch.utils.data.DataLoader(dataset=train_dataset, batch_size=train_batch_size, shuffle=True)
+
+    test_dataset = datasets.MNIST(root='./data/', train=False, transform=transform)
+    test_loader = torch.utils.data.DataLoader(dataset=test_dataset, batch_size=test_batch_size, shuffle=False)
+
+    return train_loader, test_loader

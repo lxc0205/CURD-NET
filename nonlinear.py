@@ -2,52 +2,13 @@ import math
 import torch
 import random
 from torch import Tensor
-from torch.nn.parameter import Parameter
-from torch.nn import functional as F
 from torch.nn import init
 from funcitions import origin_norm
+from torch.nn import functional as F
+from torch.nn.parameter import Parameter
+
 
 class Nonlinear(torch.nn.Module):
-    r"""Applies a linear transformation to the incoming data: :math:`y = nonlinear(x)A^T + b`.
-
-    This module supports :ref:`TensorFloat32<tf32_on_ampere>`.
-
-    On certain ROCm devices, when using float16 inputs this module will use :ref:`different precision<fp16_on_mi200>` for backward.
-
-    Args:
-        in_features: size of each input sample
-        out_features: size of each output sample
-        bias: If set to ``False``, the layer will not learn an additive bias.
-            Default: ``True``
-        base_func: the set of base functions
-        func_num: the number of base functions
-        random_num: the number of selected base functions
-        weight: the learnable weights.
-       
-    Shape:
-        - Input: :math:`(*, H_{in})` where :math:`*` means any number of
-          dimensions including none and :math:`H_{in} = \text{in\_features}`.
-        - Output: :math:`(*, H_{out})` where all but the last dimension
-          are the same shape as the input and :math:`H_{out} = \text{out\_features}`.
-
-    Attributes:
-        weight: the learnable weights of the module of shape
-            :math:`(\text{out\_features}, \text{in\_features})`. The values are
-            initialized from :math:`\mathcal{U}(-\sqrt{k}, \sqrt{k})`, where
-            :math:`k = \frac{1}{\text{in\_features}}`
-        bias:   the learnable bias of the module of shape :math:`(\text{out\_features})`.
-                If :attr:`bias` is ``True``, the values are initialized from
-                :math:`\mathcal{U}(-\sqrt{k}, \sqrt{k})` where
-                :math:`k = \frac{1}{\text{in\_features}}`
-
-    Examples::
-
-        >>> m = Nonlinear(20, 30)
-        >>> input = torch.randn(128, 20)
-        >>> output = m(input)
-        >>> print(output.size())
-        torch.Size([128, 30])
-    """
     __constants__ = ['in_features', 'out_features']
     in_features: int
     out_features: int
@@ -76,8 +37,16 @@ class Nonlinear(torch.nn.Module):
             bound = 1 / math.sqrt(fan_in) if fan_in > 0 else 0
             init.uniform_(self.bias, -bound, bound)
 
+    def minMax_normalization(self, x):
+        x_min = x.min(dim=-1, keepdim=True).values
+        x_max = x.max(dim=-1, keepdim=True).values
+        if (x_max - x_min).sum() == 0:
+            return x
+        else:
+            return (x - x_min) / (x_max - x_min + 1e-8)
+
     def nonlinear_layer(self, x):
-        # Input data x must be in the range [0, 1]，or对每个特征列进行归一化
+        x = self.minMax_normalization(x)
         assert (x >= 0).all() and (x <= 1).all(), "Input data must be in the range [0, 1]"
         funcs_index = random.sample(range(self.func_num), self.ramdom_num)
         funcs_index.sort()
@@ -87,7 +56,6 @@ class Nonlinear(torch.nn.Module):
         return x_expand
     
     def forward(self, input: Tensor) -> Tensor: 
-        # 64*8*784=6272
         x = F.linear(self.nonlinear_layer(input), self.weight, self.bias)
         return x
     
@@ -95,46 +63,6 @@ class Nonlinear(torch.nn.Module):
         return f'in_features={self.in_features}, out_features={self.out_features}, bias={self.bias is not None}, base_func={self.base_func}, func_num={self.func_num}'
 
 class Nonlinear_Broad(torch.nn.Module):
-    r"""Applies a linear transformation to the incoming data: :math:`y = nonlinear((x)A+x)^T + b`.
-
-    This module supports :ref:`TensorFloat32<tf32_on_ampere>`.
-
-    On certain ROCm devices, when using float16 inputs this module will use :ref:`different precision<fp16_on_mi200>` for backward.
-
-    Args:
-        in_features: size of each input sample
-        out_features: size of each output sample
-        bias: If set to ``False``, the layer will not learn an additive bias.
-            Default: ``True``
-        base_func: the set of base functions
-        func_num: the number of base functions
-        random_num: the number of selected base functions
-        weight: the learnable weights.
-       
-    Shape:
-        - Input: :math:`(*, H_{in})` where :math:`*` means any number of
-          dimensions including none and :math:`H_{in} = \text{in\_features}`.
-        - Output: :math:`(*, H_{out})` where all but the last dimension
-          are the same shape as the input and :math:`H_{out} = \text{out\_features}`.
-
-    Attributes:
-        weight: the learnable weights of the module of shape
-            :math:`(\text{out\_features}, \text{in\_features})`. The values are
-            initialized from :math:`\mathcal{U}(-\sqrt{k}, \sqrt{k})`, where
-            :math:`k = \frac{1}{\text{in\_features}}`
-        bias:   the learnable bias of the module of shape :math:`(\text{out\_features})`.
-                If :attr:`bias` is ``True``, the values are initialized from
-                :math:`\mathcal{U}(-\sqrt{k}, \sqrt{k})` where
-                :math:`k = \frac{1}{\text{in\_features}}`
-
-    Examples::
-
-        >>> m = Nonlinear(20, 30)
-        >>> input = torch.randn(128, 20)
-        >>> output = m(input)
-        >>> print(output.size())
-        torch.Size([128, 30])
-    """
     __constants__ = ['in_features', 'out_features']
     in_features: int
     out_features: int
@@ -171,8 +99,18 @@ class Nonlinear_Broad(torch.nn.Module):
             fan_in, _ = init._calculate_fan_in_and_fan_out(self.weight2)
             bound = 1 / math.sqrt(fan_in) if fan_in > 0 else 0
             init.uniform_(self.bias2, -bound, bound)
+
+    def minMax_normalization(self, x):
+        x_min = x.min(dim=-1, keepdim=True).values
+        x_max = x.max(dim=-1, keepdim=True).values
+        if (x_max - x_min).sum() == 0:
+            return x
+        else:
+            return (x - x_min) / (x_max - x_min + 1e-8)
+
+
     def nonlinear_layer(self, x):
-        # Input data x must be in the range [0, 1]，or对每个特征列进行归一化
+        x = self.minMax_normalization(x)
         assert (x >= 0).all() and (x <= 1).all(), "Input data must be in the range [0, 1]"
         funcs_index = random.sample(range(self.func_num), self.ramdom_num)
         funcs_index.sort()
@@ -185,7 +123,7 @@ class Nonlinear_Broad(torch.nn.Module):
         x = F.linear(input, self.weight1, self.bias1)
         x = torch.nn.Sigmoid()(x)
         x = F.linear(self.nonlinear_layer(x), self.weight2, self.bias2)     
-        x = torch.nn.Sigmoid()(x)   
+        x = torch.nn.Sigmoid()(x)
         return x
     
     def extra_repr(self) -> str:
@@ -203,8 +141,3 @@ if __name__ == '__main__':
     # model1 = Nonlinear(20, 30)
     # output1 = model1(input)
     # print(output1.size())
-
-
-    # model2 = torch.nn.Linear(20, 30)
-    # output2 = model2(input)
-    # print(output2.size())
