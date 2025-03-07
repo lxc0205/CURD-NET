@@ -38,12 +38,11 @@ class Nonlinear(torch.nn.Module):
             init.uniform_(self.bias, -bound, bound)
 
     def minMax_normalization(self, x):
-        x_min = x.min(dim=-1, keepdim=True).values
-        x_max = x.max(dim=-1, keepdim=True).values
-        if (x_max - x_min).sum() == 0:
-            return x
-        else:
-            return (x - x_min) / (x_max - x_min + 1e-8)
+        x_min = x.min(dim=-1).values
+        x_min = x_min.min(dim=-1).values
+        x_max = x.max(dim=-1).values
+        x_max = x_max.max(dim=-1).values
+        return (x - x_min) / (x_max - x_min + 1e-8) if x_max - x_min > 1e-8 else x
 
     def nonlinear_layer(self, x):
         x = self.minMax_normalization(x)
@@ -56,8 +55,7 @@ class Nonlinear(torch.nn.Module):
         return x_expand
     
     def forward(self, input: Tensor) -> Tensor: 
-        x = F.linear(self.nonlinear_layer(input), self.weight, self.bias)
-        return x
+        return F.linear(self.nonlinear_layer(input), self.weight, self.bias)
     
     def extra_repr(self) -> str:
         return f'in_features={self.in_features}, out_features={self.out_features}, bias={self.bias is not None}, base_func={self.base_func}, func_num={self.func_num}'
@@ -101,13 +99,11 @@ class Nonlinear_Broad(torch.nn.Module):
             init.uniform_(self.bias2, -bound, bound)
 
     def minMax_normalization(self, x):
-        x_min = x.min(dim=-1, keepdim=True).values
-        x_max = x.max(dim=-1, keepdim=True).values
-        if (x_max - x_min).sum() == 0:
-            return x
-        else:
-            return (x - x_min) / (x_max - x_min + 1e-8)
-
+        x_min = x.min(dim=-1).values
+        x_min = x_min.min(dim=-1).values
+        x_max = x.max(dim=-1).values
+        x_max = x_max.max(dim=-1).values
+        return (x - x_min) / (x_max - x_min + 1e-8) if x_max - x_min > 1e-8 else x
 
     def nonlinear_layer(self, x):
         x = self.minMax_normalization(x)
@@ -131,13 +127,18 @@ class Nonlinear_Broad(torch.nn.Module):
 
 
 if __name__ == '__main__':
-    # 测试对比
+    # input data generation
     input = torch.rand(128, 20)
 
-    model0 = Nonlinear_Broad(20, 20, 30)
-    output0 = model0(input)
-    print(output0.size())
+    # model test 1
+    model = Nonlinear(20, 30)
+    output = model(input)
+    print(output)
+    print(output.size())
 
-    # model1 = Nonlinear(20, 30)
-    # output1 = model1(input)
-    # print(output1.size())
+    # model test 2
+    model = Nonlinear_Broad(20, 20, 30)
+    output = model(input)
+    print(output)
+    print(output.size())
+
